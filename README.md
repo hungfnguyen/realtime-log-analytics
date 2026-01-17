@@ -1,185 +1,187 @@
-# realtime-log-analytics
+# Real-time Log Analytics & Security Monitoring Pipeline
 
-Giải pháp **giám sát & phân tích log real-time** cho web servers:
+> **A scalable, end-to-end data engineering solution for real-time web server monitoring, anomaly detection, and log analysis.**
 
-* Thu thập log từ nhiều máy chủ bằng **Apache Flume**
-* Vận chuyển qua **Apache Kafka**
-* Phân tích real-time bằng **Apache Spark (Structured Streaming)**
-* Lưu **time-series** vào **InfluxDB**
-* Trực quan hóa & cảnh báo bằng **Grafana**
-
-## ✨ Tính năng chính
-
-* Đếm **HTTP status** (2xx/3xx/4xx/5xx), **RPS**, **latency**, **byte**
-* Phát hiện **bất thường**: *IP spike*, *error surge*, *scan nhiều URL*
-* **Dashboard** real-time và **Alerting** theo ngưỡng
-* Thiết kế **mở rộng ngang**, **độ trễ thấp**, **chịu lỗi**
-
----
-## 🏗️ Kiến trúc
-
-<div align="center">
-  <img src="docs/img/architecture.jpeg" alt="System Architecture" width="820"><br/>
-  <em>Hình 1. Kiến trúc tổng thể</em>
-</div>
-
----
-## 📊 Luồng dữ liệu log
-
-<div align="center">
-  <img src="docs/log-pipeline.jpg" alt="Log Data Pipeline" width="1000"><br/>
-  <em>Hình 2. Luồng dữ liệu từ Nginx log đến Grafana</em>
-</div>
+This project implements a robust **Real-time Big Data Pipeline** designed to ingest, process, and visualize high-throughput log data from distributed web servers. Leveraging the power of the **Hadoop ecosystem** and **Stream Processing** technologies, the system provides sub-minute insights into infrastructure health, traffic patterns, and potential security threats (DDoS, scanning).
 
 ---
 
-## 📈 Dashboard (mẫu)
+## System Architecture
+
+The architecture follows a decoupled, microservices-based design ensuring high availability, fault tolerance, and horizontal scalability.
 
 <div align="center">
-  <img src="docs/img/grafana/HTTP_Stats.jpg" alt="HTTP Realtime Stats" width="1000"><br/>
-  <em>Hình 3. HTTP Realtime Stats – RPS, latency, error rate</em>
+<img src="docs/img/architecture.jpeg" alt="System Architecture" width="820">
+
+
+
+
+<em>Figure 1. High-level System Architecture</em>
 </div>
 
-<div align="center">
-  <img src="docs/img/grafana/ErrorAnalytics.jpg" alt="Error Events" width="1000"><br/>
-  <em>Hình 4. Error Events – phân loại lỗi theo hostname/level</em>
-</div>
+### Key Technical Highlights
+
+* **Decoupled Ingestion**: Uses **Apache Flume** with `TAILDIR` source for reliable log shipping and **Apache Kafka** as a durable message buffer.
+* **Event-Time Processing**: Implements **Apache Spark Structured Streaming** with stateful aggregations, handling late data via **Watermarking** (2-minute threshold) and Windowing (10-second sliding windows).
+* **TimeSeries Optimization**: Metrics are stored in **InfluxDB** with optimized schema design (Tags vs. Fields) for high-cardinality queries.
+* **Infrastructure as Code (IaC)**: Fully containerized environment using **Docker** and **Docker Compose** for reproducible deployments.
+
+---
+
+## Data Pipeline Workflow
 
 <div align="center">
-  <img src="docs/img/grafana/AnomalyDetection.jpg" alt="Realtime Anomaly Detection" width="1000"><br/>
-  <em>Hình 5. Realtime Anomaly Detection – ip_spike, error_surge, scan</em>
+<img src="docs/log-pipeline.jpg" alt="Log Data Pipeline" width="1000">
+
+
+
+
+<em>Figure 2. End-to-end Data Flow: From Nginx to Grafana</em>
 </div>
 
+1. **Log Generation**: Distributed **Nginx** servers generate Access (JSON) and Error (Text) logs.
+2. **Ingestion Layer**: **Flume Agents** tail logs and push structured events to a centralized Flume Collector via Avro.
+3. **Buffering Layer**: **Kafka** partitions data into `web-logs` (access) and `web-errors` topics, decoupling producers from consumers.
+4. **Processing Layer**: **Spark Streaming** jobs consume Kafka topics to:
+* Parse and normalize raw logs.
+* Compute metrics (RPS, Latency, Throughput).
+* Detect anomalies using statistical thresholds.
+
+
+5. **Serving & Visualization**: **InfluxDB** stores time-series metrics, while **Grafana** queries and visualizes actionable insights.
+
+---
+
+## Key Features
+
+### 1. Real-time Traffic Monitoring
+
+* **Performance Metrics**: Tracks **Requests Per Second (RPS)**, average/max **Latency**, and **Bandwidth** usage in real-time.
+* **Status Code Analysis**: Granular breakdown of HTTP 2xx, 3xx, 4xx, and 5xx responses.
+
+### 2. Cybersecurity Anomaly Detection
+
+The system employs heuristic analysis to identify potential threats:
+
+* **IP Spike Detection**: Identifies IPs exceeding request thresholds within a short window (Potential DDoS).
+* **Error Surges**: Alerts when the 5xx error rate spikes abnormally.
+* **Port/Path Scanning**: Detects IPs probing multiple distinct non-existent paths (Reconnaissance attacks).
+
+### 3. Centralized Alerting
+
+* Automated alerts configured in Grafana based on InfluxDB thresholds, notifying administrators of critical incidents immediately.
+
+---
+
+## Monitoring Dashboards
+
+### HTTP Performance Stats
+
+*Real-time visibility into server health, latency distribution, and error rates.*
+
 <div align="center">
-  <img src="docs/img/grafana/TopURLs.jpg" alt="Top URLs" width="1000"><br/>
-  <em>Hình 6. Top URLs – endpoints phổ biến và phân bố status</em>
+<img src="docs/img/grafana/HTTP_Stats.jpg" alt="HTTP Realtime Stats" width="1000">
+</div>
+
+### Error Analysis & Forensics
+
+*Deep dive into system errors classified by hostname, severity level, and message patterns.*
+
+<div align="center">
+<img src="docs/img/grafana/ErrorAnalytics.jpg" alt="Error Events" width="1000">
+</div>
+
+### Security & Anomaly Detection
+
+*Visualizing potential threats such as IP spikes and scanning activities with anomaly scores.*
+
+<div align="center">
+<img src="docs/img/grafana/AnomalyDetection.jpg" alt="Realtime Anomaly Detection" width="1000">
+</div>
+
+### Traffic Distribution (Top URLs)
+
+*Analysis of most accessed endpoints and their respective status codes.*
+
+<div align="center">
+<img src="docs/img/grafana/TopURLs.jpg" alt="Top URLs" width="1000">
 </div>
 
 ---
 
-## 🧰 Công nghệ sử dụng
+## Tech Stack
 
-* **Apache Flume** – thu thập log (TAILDIR, Avro/Kafka sink)
-* **Apache Kafka** – message broker, buffer, decoupling producer/consumer
-* **Apache Spark (Structured Streaming)** – xử lý luồng, cửa sổ thời gian
-* **InfluxDB** – cơ sở dữ liệu time-series
-* **Grafana** – dashboard & alerting
-* **Docker / Docker Compose** – môi trường triển khai
+| Domain | Technology | Usage |
+| --- | --- | --- |
+| **Ingestion** | **Apache Flume** | Log collection (Taildir Source, Avro Sink) |
+| **Messaging** | **Apache Kafka** | Distributed Event Streaming Platform |
+| **Processing** | **Apache Spark** | Structured Streaming (Python/PySpark), Stateful Aggregation |
+| **Storage** | **InfluxDB** | Time-Series Database (TSDB) for metrics |
+| **Visualization** | **Grafana** | Operational Dashboards & Alerting (Flux query language) |
+| **DevOps** | **Docker** | Containerization & Orchestration |
 
 ---
 
-## 📁 Cấu trúc thư mục
+## Project Structure
 
 ```text
 realtime-log-analytics/
-├─ docker-compose.yml
-├─ deploy.sh
-├─ .env
-├─ README.md
-│
-├─ flume/
-│  ├─ agents/
-│  │  ├─ web1/flume.conf
-│  │  ├─ web2/flume.conf
-│  │  └─ web3/flume.conf
-│  └─ collector/flume.conf
-│
-├─ kafka/
-│  ├─ config/server.properties    # (optional, override)
-│  └─ make_topics.sh              # tạo topic web-logs, partitions, retention
-│
-├─ spark/
-│  ├─ src/main/scala/com/yourproject/LogAnalyzer.scala  # (hoặc python/)
-│  ├─ conf/app.yaml              # window, watermark, thresholds
-│  ├─ tests/test_parsing.scala   # (hoặc pytest nếu dùng PySpark)
-│  ├─ build.sbt                  # hoặc pom.xml / requirements.txt
-│  └─ Dockerfile
-│
-├─ influxdb/
-│  ├─ config/influxdb.conf       # (optional)
-│  └─ init/                      # script tạo org/bucket/token, retention
-│
-├─ grafana/
-│  ├─ provisioning/
-│  │  ├─ datasources/datasource.yml
-│  │  └─ dashboards/dashboards.yml
-│  └─ dashboards/
-│     ├─ log-analysis-dashboard.json
-│     └─ alerts.json             # (optional) export alert rules
-│
-├─ scripts/
-│  ├─ log-generator/log_generator.py
-│  ├─ gen_traffic.sh             # ab/hey/wrk
-│  └─ smoke.sh                   # kiểm tra nhanh Kafka/Influx/Grafana
-│
-├─ data/
-│  ├─ logs/web1/access.log
-│  ├─ logs/web2/access.log
-│  ├─ logs/web3/access.log
-│  └─ state/spark/checkpoints/
-│
-└─ docs/
-   ├─ architecture.md
-   └─ runbook.md
+├── docker-compose.yml       # Orchestration of the entire stack
+├── .env                     # Environment variables configuration
+├── flume/                   # Log ingestion configurations
+│   ├── agents/              # Per-node agents (web1, web2, web3)
+│   └── collector/           # Centralized aggregation logic
+├── kafka/                   # Kafka provisioning scripts
+├── spark/                   # ETL & Analytics Logic
+│   ├── src/python/          # PySpark streaming jobs
+│   │   ├── stream_access.py # Access log processing & metrics
+│   │   ├── stream_error.py  # Error log parsing & classification
+│   │   └── schemas/         # Data contracts & Schema definitions
+│   └── Dockerfile           # Custom Spark image with dependencies
+├── influxdb/                # DB initialization & retention policies
+├── grafana/                 # Dashboard provisioning & Datasources
+└── docs/                    # Architectural documentation
 
 ```
+
+---
+
+## Contributors & Roles
+
+This project was built by a collaborative team of 5 engineers, simulating a real-world agile environment.
+
+* **Hung (DevOps & Ingestion):**
+* Designed the Flume topology (Agents & Collectors).
+* Managed Docker deployment scripts and environment stability.
+
+
+* **Hao (Data Pipeline):**
+* Managed the Kafka cluster implementation.
+* Optimized topic partitioning and retention policies for high throughput.
+
+
+* **Hai (Data Processing):**
+* Developed Spark Structured Streaming jobs.
+* Implemented windowed aggregations and watermark logic for data consistency.
+
+
+* **Don (Data Storage):**
+* Designed InfluxDB schema (measurements, tags, fields) for query optimization.
+* Handled data persistence layers.
+
+
+* **Nhat (Visualization):**
+* Built Grafana dashboards and configured alerting rules (Flux).
+* Ensured data interpretability for end-users.
+
 
 
 ---
 
-## 👥 Chia nhiệm vụ (5 người)
+### Documentation
 
-* **Hùng (Flume & Deploy): 🚀**
-  Phụ trách đầu vào (gom log) và triển khai dự án lên server.
+For detailed architectural decisions and runbooks, please refer to the internal documentation:
 
-  * Viết & cấu hình Flume Agents (3 server) + Aggregator/Collector (nếu dùng 2 tầng)
-  * Thiết lập `TAILDIR`, `file channel`, Avro/Kafka sink, xử lý log rotate
-  * Soạn `deploy.sh`, chuẩn bị `.env`, đảm bảo stack chạy ổn định
-  * **Deliverables:** `flume.conf` (agents/aggregator), `deploy.sh`, hướng dẫn triển khai
+* [Architecture Design Document](https://www.google.com/search?q=docs/architecture.md)
+* [Operational Runbook](https://www.google.com/search?q=docs/runbook.md)
 
-* **Hảo (Kafka): 🔗**
-  Đảm bảo “đường ống” vận chuyển log hoạt động tốt.
-
-  * Cấu hình Kafka (topic `web-logs`, partitions, retention, acks)
-  * Theo dõi consumer lag, runbook start/stop, script tạo topic
-  * (Tùy chọn) KRaft (không ZK) cho Compose demo
-  * **Deliverables:** `kafka/config/server.properties`, `make_topics.sh`, runbook Kafka
-
-* **Hải (Spark): 🧠**
-  Xây dựng “bộ não” phân tích dữ liệu.
-
-  * Structured Streaming đọc Kafka → parse log, tính RPS & đếm status theo **window 10s**, **watermark 2m**
-  * Kiểm soát throughput/backpressure, checkpointing
-  * **Deliverables:** mã nguồn `spark/src/...`, build script, test parsing
-
-* **Đôn (InfluxDB): 💾**
-  Phụ trách “nhà kho” lưu trữ kết quả.
-
-  * Thiết kế bucket/retention, measurement (`http_stats`, `anomaly`)
-  * Giao tiếp từ Spark (`foreachBatch`/HTTP client), tối ưu batch write
-  * **Deliverables:** `influxdb/config/influxdb.conf` (nếu cần), schema & hướng dẫn token/ORG/BUCKET
-
-* **Nhật (Grafana): ✅**
-  Phụ trách “mặt tiền” (dashboard) và quản lý chung.
-
-  * Provision datasource & dashboards, thiết kế panel (RPS, 4xx/5xx%, Top IP/URL, bảng anomaly)
-  * Thiết lập alert rules (ip\_spike, error\_surge)
-  * **Deliverables:** `grafana/provisioning/*`, `dashboards/*.json`, README.md
-
-
-
-### Quy ước Nhánh (Branching Convention)
-
-* **Nhánh chính:**
-    * `main`: Chứa phiên bản ổn định, sẵn sàng để deploy.
-    * `develop`: Nhánh tích hợp chính. Tất cả các nhánh `feature` sẽ được merge vào đây sau khi hoàn thành.
-
-* **Quy ước đặt tên nhánh `feature`:**
-    * `feat/flume-ingestion`: **Hùng** (Flume)
-    * `feat/kafka-pipeline`: **Hảo** (Kafka)
-    * `feat/spark-analytics`: **Hải** (Spark)
-    * `feat/influxdb-storage`: **Đôn** (InfluxDB)
-    * `feat/grafana-dashboard`: **Nhật** (Grafana)
-## 📚 Tài liệu chi tiết
-
-- 📄 **Project Doc (Google Docs)**: [Tài liệu Kiến trúc – Hệ thống Giám sát & Phân tích Log Server Tập trung](https://docs.google.com/document/d/1PiGJ2ZUnI4yse3WgkTP1DghxmsFws_z2dIaZyuNYdq8/edit?hl=vi&tab=t.0#heading=h.exjyajopfano)
